@@ -34,12 +34,10 @@ class HTMLRenderer(abstractRenderer.AbstractRenderer):
         # Flags
         self.indentFlag = False
         self.oebFlag = oebFlag
+        self.fileCounter = 0
+        self.secondaryCounter = 0
         
     def render(self):
-        # Write index
-        self.f = open(self.outputDir + u'/index.html', 'w')
-        self.write(indexPage)
-        self.close()
         self.f = DummyFile()
         # Write pages
         self.loadUSFM(self.inputDir)
@@ -52,7 +50,8 @@ class HTMLRenderer(abstractRenderer.AbstractRenderer):
     # File handling    
         
     def openFile(self, bookID):
-        self.f = open(self.outputDir + u'/b' + bookID + u'.html', 'w')
+        self.f = open(self.outputDir + u'/b' + bookID + u'_' + str(self.fileCounter) + u'.html', 'w')
+        self.bookID = bookID
         self.ft = []
         
     def close(self): 
@@ -76,7 +75,16 @@ class HTMLRenderer(abstractRenderer.AbstractRenderer):
         return c
         
     # Support
-        
+    def incrementFile(self):
+        self.ft.append(footer)
+        self.ft.append(u'</html>')
+        self.close()
+        self.ft = []
+        self.ft.append(header)
+        self.ft.append("<p>")
+        self.fileCounter +=1
+        self.f = open(self.outputDir + u'/b' + self.bookID + u'_' + str(self.fileCounter) + u'.html', 'w')
+
     def writeChapterMarker(self):
         self.write(self.cachedChapterMarker)
         self.cachedChapterMarker = u''
@@ -117,6 +125,12 @@ class HTMLRenderer(abstractRenderer.AbstractRenderer):
     def renderS2(self, token):
         self.indentFlag = False
         self.write(u'</p><h7>' + token.value + u'</h7><p>')
+    def renderS5(self,token):
+        if (self.secondaryCounter>=5):
+            self.secondaryCounter = 1
+            self.incrementFile()
+        else:
+            self.secondaryCounter+=1
     def renderC(self, token):
         self.cc = token.value.zfill(3)
         self.cachedChapterMarker = u'<span class="chapter">' + token.value + u'</span>'
@@ -147,7 +161,63 @@ class HTMLRenderer(abstractRenderer.AbstractRenderer):
     def renderBDITS(self, token):   self.f.write(u'<b><i>')
     def renderBDITE(self, token):   self.f.write(u'</b></i>')
     def renderPBR(self, token):     self.write(u'<br />')
-    
+
+    #handle tables
+    def renderTR(self,token):
+        self.write(u'<tr>' + token.value + '</tr>')
+    def renderTHR1(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+    def renderTHR2(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+    def renderTHR3(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+    def renderTHR4(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+    def renderTHR5(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+    def renderTHR6(self,token):
+        self.write(u'<th class="align-right">' + token.value + '</th>')
+
+    def renderTH1(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    def renderTH2(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    def renderTH3(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    def renderTH4(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    def renderTH5(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    def renderTH6(self,token):
+        self.write(u'<th>' + token.value + '</th>')
+    #table column right aligned
+    def renderTCR1(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+    def renderTCR2(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+    def renderTCR3(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+    def renderTCR4(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+    def renderTCR5(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+    def renderTCR6(self,token):
+        self.write(u'<td class="align-right">' + token.value + '</td>')
+
+    #table column
+    def renderTC1(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+    def renderTC2(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+    def renderTC3(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+    def renderTC4(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+    def renderTC5(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+    def renderTC6(self,token):
+        self.write(u'<td>' + token.value + '</td>')
+
     def renderD(self, token):       self.writeChapterMarker()
 
     def render_is1(self, token):    self.renderS(token)
@@ -168,30 +238,6 @@ header = ur"""<!DOCTYPE html>
     <head>
     <title>Open English Bible</title>
     <meta charset='utf-8'>
-    <link href="normalize.css" rel="stylesheet">
-    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-    <script>
-    $( document ).ready(function() {
- 
-        $( "html" ).click(function( e ) {
-            var container = $("div.navbar");
-            if (!container.is(e.target)
-                && container.has(e.target).length === 0) 
-            {
-                $("table").css( "left", "-9999px" ); 
-            }           
-         });
-        
-        $( "div.navbar" ).click(function( event ) {
-           $("table").css( "left", "0px" );
-        });
- 
-        $( "div.navbar" ).hover(
-            function( e ) { $("table").css( "left", "0px"    ); },
-            function( e ) { $("table").css( "left", "-999px" ); }
-        );
-    });
-    </script>
     <style type="text/css">
     @media all {
         html {font-size: 19px;} 
@@ -200,7 +246,6 @@ header = ur"""<!DOCTYPE html>
             margin-left:auto;
             margin-right:auto;
             width:100%;
-            max-width:800px;
             min-height: 100%;
             position: relative; 
         }
@@ -220,8 +265,6 @@ header = ur"""<!DOCTYPE html>
         	color: #202020;
         }
         .verse{
-        	position: absolute;
-        	left: 0rem;
         	width: 6rem;
         	text-align: right;
         	font-size: 80%;
@@ -291,26 +334,8 @@ header = ur"""<!DOCTYPE html>
             -o-font-feature-settings: "liga", "dlig","onum";
             font-feature-settings: "liga", "dlig","onum";
         }
-        .navbar { 
-            position:fixed; 
-            margin-left:5px; 
-            font-family: 'Verdana', sans-serif;
-            background-color:white;
-            z-index:999;
-         }
-        .navbar a { 
-            color: green;  
-            text-decoration: none; 
-        }
-        .navbar p { 
-            color:green; 
-        }
-        .navbar table {
-            position:absolute; 
-            left:-999em; 
-            background-color:#E6FAE6;
-            border-top:solid green;
-            font-size:80%;
+        .align-right {
+            align:right;
         }
         .nd { /* Lord */
             font-variant:small-caps;
@@ -361,105 +386,6 @@ header = ur"""<!DOCTYPE html>
     </head>
 
     <body>
-    <div class="navbar">
-        <p>%navmarker%</p>
-        <table>
-            <tr><td colspan = "5" style="font-size:100%;">&nbsp;<br/>Old Testament</td></tr>
-            <tr>
-            <td><a href="b001.html">Genesis</a>&nbsp;</td>
-            <td><a href="b002.html">Exodus</a>&nbsp;</td>
-            <td><a href="b003.html">Leviticus</a>&nbsp;</td>
-            <td><a href="b004.html">Numbers</a>&nbsp;</td>
-            <td><a href="b005.html">Deuteronomy</a>&nbsp;</td>
-            <td><a href="b006.html">Joshua</a>&nbsp;</td>
-        </tr>
-        <tr>
-            <td><a href="b007.html">Judges</a>&nbsp;</td>
-            <td><a href="b008.html">Ruth</a>&nbsp;</td>
-            <td><a href="b009.html">1&nbsp;Samuel</a>&nbsp;</td>
-            <td><a href="b010.html">2&nbsp;Samuel</a>&nbsp;</td>
-            <td><a href="b011.html">1&nbsp;Kings</a>&nbsp;</td>
-            <td><a href="b012.html">2&nbsp;Kings</a>&nbsp;</td>
-        </tr>
-        <tr>
-            <td><a href="b013.html">1&nbsp;Chronicles</a>&nbsp;</td>
-            <td><a href="b014.html">2&nbsp;Chronicles</a>&nbsp;</td>
-            <td><a href="b015.html">Ezra</a>&nbsp;</td>
-            <td><a href="b016.html">Nehemiah</a>&nbsp;</td>
-            <td><a href="b017.html">Esther</a>&nbsp;</td>
-            <td><a href="b018.html">Job</a>&nbsp;</td>
-        </tr>
-        <tr>
-        <td><a href="b019.html">Psalms</a>&nbsp;</td>
-        <td><a href="b020.html">Proverbs</a>&nbsp;</td>
-        <td><a href="b021.html">Ecclesiastes</a>&nbsp;</td>
-        <td><a href="b022.html">Song&nbsp;of&nbsp;Solomon</a>&nbsp;</td>
-        <td><a href="b023.html">Isaiah</a>&nbsp;</td>
-        <td><a href="b024.html">Jeremiah</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b025.html">Lamentations</a>&nbsp;</td>
-        <td><a href="b026.html">Ezekiel</a>&nbsp;</td>
-        <td><a href="b027.html">Daniel</a>&nbsp;</td>
-        <td><a href="b028.html">Hosea</a>&nbsp;</td>
-        <td><a href="b029.html">Joel</a>&nbsp;</td>
-        <td><a href="b030.html">Amos</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b031.html">Obadiah</a>&nbsp;</td>
-        <td><a href="b032.html">Jonah</a>&nbsp;</td>
-        <td><a href="b033.html">Micah</a>&nbsp;</td>
-        <td><a href="b034.html">Nahum</a>&nbsp;</td>
-        <td><a href="b035.html">Habakkuk</a>&nbsp;</td>
-        <td><a href="b036.html">Zephaniah</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b037.html">Haggai</a>&nbsp;</td>
-        <td><a href="b038.html">Zechariah</a>&nbsp;</td>
-        <td><a href="b039.html">Malachi</a>&nbsp;</td>
-    </tr>
-    <tr><td colspan = "5" style="font-size:100%;">&nbsp;<br/>New Testament</td></tr>
-    <tr>
-        <td><a href="b040.html">Matthew</a>&nbsp;</td>
-        <td><a href="b041.html">Mark</a>&nbsp;</td>
-        <td><a href="b042.html">Luke</a>&nbsp;</td>
-        <td><a href="b043.html">John</a>&nbsp;</td>
-        <td><a href="b044.html">Acts</a>&nbsp;</td>
-        <td><a href="b045.html">Romans</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b046.html">1&nbsp;Corinthians</a>&nbsp;</td>
-        <td><a href="b047.html">2&nbsp;Corinthians</a>&nbsp;</td>
-        <td><a href="b048.html">Galatians</a>&nbsp;</td>
-        <td><a href="b049.html">Ephesians</a>&nbsp;</td>
-        <td><a href="b050.html">Philippians</a>&nbsp;</td>
-        <td><a href="b051.html">Colossians</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b052.html">1&nbsp;Thessalonians</a>&nbsp;</td>
-        <td><a href="b053.html">2&nbsp;Thessalonians</a>&nbsp;</td>
-        <td><a href="b054.html">1&nbsp;Timothy</a>&nbsp;</td>
-        <td><a href="b055.html">2&nbsp;Timothy</a>&nbsp;</td>
-        <td><a href="b056.html">Titus</a>&nbsp;</td>
-        <td><a href="b057.html">Philemon</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b058.html">Hebrews</a>&nbsp;</td>
-        <td><a href="b059.html">James</a>&nbsp;</td>
-        <td><a href="b060.html">1&nbsp;Peter</a>&nbsp;</td>
-        <td><a href="b061.html">2&nbsp;Peter</a>&nbsp;</td>
-        <td><a href="b062.html">1&nbsp;John</a>&nbsp;</td>
-        <td><a href="b063.html">2&nbsp;John</a>&nbsp;</td>
-    </tr>
-    <tr>
-        <td><a href="b064.html">3&nbsp;John</a>&nbsp;</td>
-        <td><a href="b065.html">Jude</a>&nbsp;</td>
-        <td><a href="b066.html">Revelation</a>&nbsp;</td>
-        </tr>
-        <tr><td>&nbsp;</td></tr>
-        %linkToWebsite%
-    </table>
-    </div>
         """
 
 footer = ur"""
@@ -467,4 +393,3 @@ footer = ur"""
         """
 
 indexPage = header + ur"""<h1>Bible</h1>""" + footer
-
